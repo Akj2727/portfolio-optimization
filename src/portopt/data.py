@@ -23,7 +23,7 @@ class MarketConfig:
     n_assets: int = 12
     n_sectors: int = 3
     years: int = 15
-    seed: int = 7
+    seed: int = 21
     transition: tuple = (
         (0.985, 0.010, 0.005),
         (0.015, 0.975, 0.010),
@@ -33,7 +33,7 @@ class MarketConfig:
     market_vol: tuple = (0.007, 0.010, 0.022)
     sector_vol: float = 0.004
     drift_persistence: float = 0.985
-    drift_shock: float = 0.00012
+    drift_shock: float = 0.00008
 
 
 def simulate_market(cfg: MarketConfig = MarketConfig()) -> tuple[pd.DataFrame, pd.Series]:
@@ -43,7 +43,7 @@ def simulate_market(cfg: MarketConfig = MarketConfig()) -> tuple[pd.DataFrame, p
     trans = np.asarray(cfg.transition)
 
     betas = rng.uniform(0.5, 1.5, n)
-    idio_vol = rng.uniform(0.007, 0.018, n)
+    idio_vol = rng.uniform(0.006, 0.014, n)
     sector = np.arange(n) % cfg.n_sectors
 
     regime = np.empty(days, dtype=int)
