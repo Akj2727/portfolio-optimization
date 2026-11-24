@@ -1,4 +1,4 @@
-"""Synthetic daily returns for a universe of assets driven by hidden market regimes.
+"""Daily returns: a synthetic regime-driven market, or real US stock prices.
 
 The generator has three ingredients a real market also has, so the methods downstream
 have something to find:
@@ -11,6 +11,7 @@ have something to find:
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -65,3 +66,17 @@ def simulate_market(cfg: MarketConfig = MarketConfig()) -> tuple[pd.DataFrame, p
     returns = pd.DataFrame(rets, index=dates, columns=cols)
     regimes = pd.Series(np.take(REGIME_NAMES, regime), index=dates, name="regime")
     return returns, regimes
+
+
+REAL_DATA = Path(__file__).resolve().parents[2] / "data" / "us_stocks_daily.csv"
+
+
+def load_real_market(path: Path = REAL_DATA) -> pd.DataFrame:
+    """Daily simple returns for 12 large US stocks from split- and dividend-adjusted closes.
+
+    Covers April 2003 to April 2018 (about 15 years, 3,784 trading days). Prices come
+    from the stock_prices.csv test file of PyPortfolioOpt (MIT licence). There are no
+    regime labels on real data, so only returns are returned.
+    """
+    prices = pd.read_csv(path, parse_dates=["date"], index_col="date").sort_index()
+    return prices.pct_change().iloc[1:].dropna(how="any")
