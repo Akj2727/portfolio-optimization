@@ -33,10 +33,35 @@ What the numbers say:
 
 Full tables, including the GA tuning grid, are in [`results/summary.md`](results/summary.md).
 
+## Results on real US stocks (out of sample, April 2013 to April 2018)
+
+The same pipeline, unchanged, run on 12 large US stocks (AAPL, AMD, AMZN, BAC, BBY, GE, JPM, PFE, SBUX, T, WMT, XOM) with daily split- and dividend-adjusted closes from April 2003 to April 2018. The last 5 years are out of sample: 59 monthly rebalances with 10 bp costs. Prices are from the `stock_prices.csv` test file of [PyPortfolioOpt](https://github.com/robertmartin8/PyPortfolioOpt) (MIT licence).
+
+![real equity curves](results/real/equity.png)
+
+| Strategy | Ann. return | Ann. vol | Sharpe | Max drawdown | Daily CVaR 95% |
+| --- | --- | --- | --- | --- | --- |
+| Equal Weight | 18.21% | 14.59% | 1.22 | -14.60% | 2.20% |
+| GA-CVaR (stacked forecasts) | 12.77% | 13.57% | 0.95 | -13.91% | 1.92% |
+| GA-MinCVaR (no forecasts) | 12.76% | 13.67% | 0.95 | -13.66% | 1.95% |
+| HMM-Blend | 18.96% | 14.50% | 1.27 | -13.05% | 2.17% |
+| HMM-Switch | 28.23% | 20.36% | 1.32 | -16.31% | 2.87% |
+
+Forecast quality, as mean cross-sectional rank IC out of sample: RF 0.104, XGBoost 0.095, stacked −0.045, raw 126-day momentum 0.119.
+
+What changes on real data:
+- The GA still lowers risk, but by less than in simulation: daily CVaR falls about 13% and volatility about 7% against equal weight. In a strong bull market that costs about 5 points of annual return.
+- Random Forest and XGBoost reach a rank IC near 0.10, but neither beats raw 126-day momentum (0.119). The stacked model is negative: its ridge meta-learner, trained on the expanding window, puts weight on the wrong base model for this period.
+- HMM-Switch has the best Sharpe (1.32 vs 1.22 for equal weight), but it gets there with higher volatility and a deeper drawdown. Five years with no real bear market is a weak test of a regime model.
+- Twelve stocks is a small cross-section, so the ICs are noisy. Treat these numbers as a sanity check on real prices, not as evidence of a tradable edge.
+
+Full tables are in [`results/real/summary.md`](results/real/summary.md).
+
 ## Run
 
 ```
 pip install -e ".[test]"
 pytest
-python -m portopt.run     # about 10 minutes on 2 cores; forecasts are cached in results/
+python -m portopt.run              # simulated market, about 10 minutes on 2 cores
+python -m portopt.run --data real  # 12 real US stocks, results in results/real/
 ```
