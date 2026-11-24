@@ -1,17 +1,20 @@
 """End-to-end experiment.
 
-    python -m portopt.run
+    python -m portopt.run               # simulated market, results in results/
+    python -m portopt.run --data real   # 12 real US stocks, results in results/real/
 
-1. Simulate 15 years of daily returns; the last 5 years are out of sample.
+1. Simulate 15 years of daily returns, or load 15 years of real US stock returns;
+   the last 5 years are out of sample.
 2. Walk-forward RF / XGBoost / stacked forecasts of 21-day relative returns.
 3. Tune the GA on the two years before the out-of-sample period.
 4. Backtest, rebalancing every 21 trading days with 10 bp costs:
    Equal Weight, GA-CVaR (stacked forecasts), GA-MinCVaR (no forecasts),
    HMM-Blend and HMM-Switch.
-5. Write results/summary.md, results/ga_tuning.csv and results/equity.png.
+5. Write summary.md, ga_tuning.csv and equity.png to the results folder.
 """
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
 
 import matplotlib
@@ -22,7 +25,7 @@ import numpy as np
 import pandas as pd
 
 from .backtest import run_backtest, summarize
-from .data import simulate_market
+from .data import load_real_market, simulate_market
 from .features import aligned, cross_sectional_ic
 from .ga import GAConfig, optimize
 from .hmm_strategy import MarketHMM, blend_weights, regime_portfolios, switch_weights
@@ -30,14 +33,23 @@ from .models import demean_by_date, walk_forward
 from .scenarios import monthly_scenarios
 from .tune_ga import tune
 
-RESULTS = Path(__file__).resolve().parents[2] / "results"
+RESULTS_ROOT = Path(__file__).resolve().parents[2] / "results"
 OOS_YEARS = 5
 RISK_AVERSION = 1.0
 
 
 def main() -> None:
-    RESULTS.mkdir(exist_ok=True)
-    returns, regimes = simulate_market()
+    global RESULTS
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data", choices=("sim", "real"), default="sim")
+    args = parser.parse_args()
+    if args.data == "real":
+        RESULTS = RESULTS_ROOT / "real"
+        returns = load_real_market()
+    else:
+        RESULTS = RESULTS_ROOT
+        returns, _ = simulate_market()
+    RESULTS.mkdir(parents=True, exist_ok=True)
     dates = returns.index
     split = dates[-252 * OOS_YEARS]
     X, y = aligned(returns)
